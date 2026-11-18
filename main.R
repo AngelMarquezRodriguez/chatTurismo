@@ -1,7 +1,10 @@
 library(plumber)
 
-# Si quieres volver a correr todo el scraping desde cero, cambia FALSE por TRUE:
-RECALCULAR_MINERIA <- TRUE
+# Recalcular la minería (scraping, grafos, PLN) SOLO en tu PC:
+#   en R:  Sys.setenv(RECALCULAR_MINERIA = "1"); source("main.R")
+# En la nube (Render) nunca se ejecuta, así no hace falta instalar rvest, igraph, etc.
+EN_NUBE <- nzchar(Sys.getenv("RENDER")) || nzchar(Sys.getenv("PORT"))
+RECALCULAR_MINERIA <- identical(Sys.getenv("RECALCULAR_MINERIA"), "1") && !EN_NUBE
 
 if (RECALCULAR_MINERIA) {
   source("R_scripts/mod1_crawling_scraping.R", encoding = "UTF-8")
