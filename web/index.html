@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía Bolivia · Descubre Bolivia conversando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --sand:#fbf5ea; --paper:#ffffff; --ink:#2b2118; --muted:#7c6f60; --line:#eadfcb;
+    --terra:#c2410c; --terra2:#ea580c; --gold:#f5b335; --red:#d52b1e; --green:#16803c; --andes:#243b6b;
+    --nat:#15803d; --gas:#b45309; --his:#4f46e5;
+    --shadow:0 10px 30px rgba(80,50,20,.12);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; }
+  body { font-family:'Nunito','Segoe UI',system-ui,sans-serif; background:var(--sand); color:var(--ink); display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  h1,h2,.serif { font-family:'Playfair Display',Georgia,serif; }
+
+  /* ---------- HERO ---------- */
+  .hero { position:relative; color:#fff; flex:none; background:linear-gradient(180deg,#243b6b 0%,#7a3b5e 38%,#e0663a 72%,#f6b756 100%); padding:10px 24px 0; overflow:hidden; transition:all .45s ease; }
+  .hero::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 78% 62%, rgba(255,226,150,.9) 0 7%, rgba(255,200,110,.35) 8% 22%, transparent 23%); pointer-events:none; }
+  .hero svg.montes { position:absolute; left:0; right:0; bottom:0; width:100%; height:38px; pointer-events:none; z-index:0; }
+  .top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .marca { display:flex; align-items:center; gap:10px; font-weight:800; font-size:17px; }
+  .marca .logo { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; font-size:21px; background:rgba(255,255,255,.18); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.35); }
+  .acciones-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .estado-pill { font-size:11.5px; padding:5px 10px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); display:flex; align-items:center; gap:6px; font-weight:600; }
+  .estado-pill i { width:8px; height:8px; border-radius:50%; background:#cbd5e1; }
+  .estado-pill.ok i { background:#4ade80; box-shadow:0 0 8px #4ade80; } .estado-pill.warn i { background:#fbbf24; } .estado-pill.bad i { background:#f87171; }
+  .lang-toggle { display:flex; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:3px; gap:2px; }
+  .lang-toggle button { border:none; background:transparent; color:#fff; font:800 12.5px 'Nunito',sans-serif; padding:5px 12px; border-radius:999px; cursor:pointer; transition:.15s; }
+  .lang-toggle button.on { background:#fff; color:var(--terra); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+  .btn-panel { background:#fff; color:var(--terra); border:none; border-radius:999px; padding:8px 14px; font-weight:800; font-size:13px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+  .btn-panel:hover { transform:translateY(-1px); }
+  .titulo { position:relative; z-index:2; margin:8px 0 0; max-width:760px; }
+  .titulo h1 { margin:0; font-size:clamp(22px,3.2vw,32px); line-height:1.1; text-shadow:0 2px 14px rgba(0,0,0,.25); }
+  .titulo p { margin:4px 0 0; font-size:14px; opacity:.95; }
+  .destinos { position:relative; z-index:2; display:flex; gap:14px; overflow-x:auto; padding:12px 2px 30px; scrollbar-width:none; }
+  .destinos::-webkit-scrollbar { display:none; }
+  .dest { flex:none; width:112px; border:none; padding:0; background:none; cursor:pointer; text-align:center; color:#fff; font-family:inherit; }
+  .dest .foto { display:grid; place-items:center; font-size:30px; width:112px; height:76px; border-radius:18px; background:linear-gradient(135deg,#3b4f7a,#1f2d4d) center/cover; border:3px solid rgba(255,255,255,.9); box-shadow:0 8px 20px rgba(0,0,0,.3); transition:transform .2s, box-shadow .2s; }
+  .dest:hover .foto { transform:translateY(-4px) scale(1.03); box-shadow:0 14px 26px rgba(0,0,0,.38); }
+  .dest .nom { display:inline-block; margin-top:7px; padding:2px 9px; border-radius:999px; background:rgba(20,12,30,.55); font-size:12.5px; font-weight:800; line-height:1.3; white-space:nowrap; }
+  body.chateando .hero { padding-bottom:0; }
+  body.chateando .titulo { display:none; }
+  body.chateando .destinos { padding:6px 2px 24px; }
+  body.chateando .dest { width:84px; } body.chateando .dest .foto { width:84px; height:50px; font-size:22px; border-radius:12px; }
+  body.chateando .dest .nom { font-size:10.5px; margin-top:4px; padding:1px 7px; }
+  body.chateando .hero svg.montes { height:26px; }
+
+  /* ---------- CHAT ---------- */
+  main { flex:1; min-height:0; display:flex; justify-content:center; padding:0 20px 12px; }
+  .chat-card { width:min(1240px,100%); margin-top:-8px; background:var(--paper); border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; min-height:0; overflow:hidden; position:relative; z-index:2; }
+  .chat-h { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; background:linear-gradient(180deg,#fffaf0,#fff); }
+  .chat-h .tools { display:flex; align-items:center; gap:8px; font-weight:600; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+  select,.btn-mini { background:#fff7e8; color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
+  #banner { display:none; background:#fee2e2; color:#7f1d1d; padding:8px 16px; font-size:13px; text-align:center; }
+
+  #chat { flex:1; overflow-y:auto; padding:18px 18px 8px; display:flex; flex-direction:column; gap:16px; scroll-behavior:smooth;
+          background:radial-gradient(circle at 100% 0, rgba(245,179,53,.10), transparent 40%), radial-gradient(circle at 0 100%, rgba(194,65,12,.07), transparent 40%); }
+  .msg { display:flex; gap:10px; max-width:94%; animation:in .3s ease; }
+  @keyframes in { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+  .msg.user { align-self:flex-end; flex-direction:row-reverse; }
+  .avatar { width:36px; height:36px; flex:none; border-radius:50%; display:grid; place-items:center; font-size:19px; background:#fff3d6; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .user .avatar { background:#ffe1d1; }
+  .bubble { padding:12px 15px; border-radius:18px; font-size:14.5px; line-height:1.55; min-width:0; box-shadow:0 2px 10px rgba(80,50,20,.07); }
+  .user .bubble { background:linear-gradient(135deg,var(--terra2),var(--terra)); color:#fff; border-bottom-right-radius:5px; }
+  .bot .bubble { background:#fffaf0; border:1px solid var(--line); border-bottom-left-radius:5px; }
+  .bubble ul { margin:6px 0 6px 18px; padding:0; } .bubble li { margin:4px 0; }
+  .bubble a { color:var(--terra); }
+  .typing { display:flex; gap:5px; padding:6px 2px; } .typing span { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:b 1.1s infinite; }
+  .typing span:nth-child(2){animation-delay:.15s} .typing span:nth-child(3){animation-delay:.3s}
+  @keyframes b { 0%,60%,100%{transform:translateY(0);opacity:.5} 30%{transform:translateY(-6px);opacity:1} }
+
+  .fuentes { display:flex; gap:12px; margin-top:12px; overflow-x:auto; padding:2px 2px 8px; }
+  .fuente { flex:0 0 226px; background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; text-decoration:none; color:var(--ink); box-shadow:0 4px 14px rgba(80,50,20,.1); transition:transform .15s, box-shadow .15s; }
+  .fuente:hover { transform:translateY(-3px); box-shadow:0 10px 22px rgba(80,50,20,.18); }
+  .fuente .img { height:112px; background:linear-gradient(135deg,#fde7b8,#f7c978) center/cover; display:grid; place-items:center; font-size:34px; }
+  .fuente .info { padding:9px 11px 11px; font-size:12px; }
+  .fuente b { display:block; font-size:14px; margin-bottom:5px; font-family:'Playfair Display',Georgia,serif; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:800; margin:2px 3px 0 0; }
+  .b-nat { background:#dcfce7; color:var(--nat); } .b-gas { background:#fef3c7; color:var(--gas); } .b-his { background:#e0e7ff; color:var(--his); }
+  .b-pos { background:#dcfce7; color:#166534; } .b-neu { background:#f1f5f9; color:#475569; } .b-neg { background:#fee2e2; color:#b91c1c; }
+  .bar { height:6px; background:#f3e7d0; border-radius:99px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--gold),var(--terra2)); border-radius:99px; }
+  .alerta { margin-top:12px; background:#fff4d6; border:1px solid #f7d58a; color:#7c4a03; border-radius:14px; padding:10px 12px; font-size:13px; }
+  .alerta b { display:block; margin-bottom:3px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip { font-size:12px; padding:4px 10px; border-radius:999px; background:#e8f1ff; border:1px solid #c6dcff; color:#1d4ed8; font-weight:700; }
+  .chip.loc { cursor:pointer; } .chip.loc:hover { background:#d4e6ff; }
+  .chip small { opacity:.6; font-weight:600; }
+  .acciones { margin-top:10px; display:flex; gap:8px; align-items:center; font-size:11px; color:var(--muted); flex-wrap:wrap; }
+  .acciones button { background:#fff; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:3px 10px; cursor:pointer; font-size:12px; font-family:inherit; font-weight:700; }
+  .acciones button:hover { color:var(--terra); border-color:var(--terra); }
+
+  #categorias { display:flex; gap:8px; padding:6px 16px 0; overflow-x:auto; scrollbar-width:none; }
+  #categorias button { flex:none; border:none; cursor:pointer; font-family:inherit; font-weight:800; font-size:12.5px; padding:7px 13px; border-radius:999px; color:#fff; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+  #categorias button:nth-child(1){background:linear-gradient(135deg,#22a35a,#15803d)}
+  #categorias button:nth-child(2){background:linear-gradient(135deg,#f59e0b,#b45309)}
+  #categorias button:nth-child(3){background:linear-gradient(135deg,#6366f1,#4338ca)}
+  #categorias button:nth-child(4){background:linear-gradient(135deg,#ec4899,#be185d)}
+  #categorias button:nth-child(5){background:linear-gradient(135deg,#0ea5e9,#0369a1)}
+  #sugerencias { display:flex; gap:8px; padding:8px 16px 0; overflow-x:auto; scrollbar-width:none; }
+  #sugerencias button { flex:none; background:#fff; border:1px dashed #e0c58f; color:#8a5a14; border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer; white-space:nowrap; font-family:inherit; font-weight:700; transition:.15s; }
+  #sugerencias button:hover { background:#fff3d6; border-style:solid; }
+
+  .input-bar { display:flex; align-items:flex-end; gap:8px; padding:12px 14px 14px; position:relative; }
+  #pregunta { flex:1; resize:none; max-height:120px; padding:13px 16px; border-radius:22px; border:2px solid var(--line); background:#fffdf8; color:var(--ink); font-size:14.5px; outline:none; font-family:inherit; transition:border-color .15s; }
+  #pregunta:focus { border-color:var(--terra2); }
+  .ibtn { width:46px; height:46px; flex:none; border-radius:50%; border:none; cursor:pointer; font-size:19px; display:grid; place-items:center; color:#fff; transition:transform .15s; }
+  .ibtn:hover { transform:scale(1.07); }
+  #btn-enviar { background:linear-gradient(135deg,var(--terra2),var(--terra)); box-shadow:0 6px 16px rgba(194,65,12,.4); }
+  #btn-mic { background:linear-gradient(135deg,#22a35a,#15803d); box-shadow:0 6px 16px rgba(21,128,61,.35); }
+  #btn-mic.rec { background:var(--red); animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(213,43,30,.6)} 70%{box-shadow:0 0 0 16px rgba(213,43,30,0)} 100%{box-shadow:0 0 0 0 rgba(213,43,30,0)} }
+  #estado-voz { position:absolute; left:18px; top:-18px; font-size:12px; font-weight:700; color:#fff; background:var(--red); padding:5px 12px; border-radius:999px; display:none; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(213,43,30,.4); }
+  #vu { width:46px; height:16px; }
+
+  /* ---------- PANEL LATERAL (mapa + minería) ---------- */
+  #velo { position:fixed; inset:0; background:rgba(30,20,10,.45); opacity:0; pointer-events:none; transition:opacity .3s; z-index:40; }
+  #velo.abierto { opacity:1; pointer-events:auto; }
+  .panel { position:fixed; top:0; right:0; bottom:0; width:min(560px,100%); background:var(--paper); z-index:50; transform:translateX(105%); transition:transform .35s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; box-shadow:-20px 0 50px rgba(0,0,0,.25); }
+  .panel.abierto { transform:none; }
+  .panel-h { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:linear-gradient(135deg,#243b6b,#c2410c); color:#fff; }
+  .panel-h h2 { margin:0; font-size:18px; } .panel-h button { background:rgba(255,255,255,.2); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:16px; cursor:pointer; }
+  .tabs { display:flex; overflow-x:auto; background:#fff7e8; border-bottom:1px solid var(--line); scrollbar-width:none; }
+  .tab-btn { flex:none; padding:11px 14px; border:none; background:none; color:var(--muted); font-weight:800; font-size:12.5px; cursor:pointer; border-bottom:3px solid transparent; font-family:inherit; }
+  .tab-btn.active { color:var(--terra); border-bottom-color:var(--terra2); background:#fff; }
+  .tab { display:none; flex:1; min-height:0; overflow:auto; padding:14px; font-size:12.5px; }
+  .tab.active { display:block; }
+  #map { height:100%; min-height:420px; border-radius:14px; border:1px solid var(--line); }
+  .tab.mapa.active { display:flex; flex-direction:column; gap:8px; } .tab.mapa .nota { color:var(--muted); font-size:12.5px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12px; }
+  th,td { border-bottom:1px solid var(--line); padding:7px 8px; text-align:left; vertical-align:top; }
+  th { color:var(--muted); font-weight:800; position:sticky; top:0; background:#fff; }
+  td a { color:var(--terra); }
+  h3 { margin:4px 0 10px; font-size:14px; }
+  .rank-row { display:grid; grid-template-columns:28px 1fr 40px; gap:10px; align-items:center; margin-bottom:10px; }
+  .rank-row .n { width:28px; height:28px; border-radius:50%; background:#fff3d6; display:grid; place-items:center; font-weight:800; font-size:12px; color:var(--terra); }
+  .rank-row:nth-child(1) .n { background:var(--gold); color:#422006; }
+  .rank-row .t { font-size:13px; margin-bottom:4px; font-weight:700; } .rank-row .c { text-align:right; font-weight:800; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .stat { background:#fff7e8; border:1px solid var(--line); border-radius:14px; padding:10px; text-align:center; }
+  .stat b { font-size:22px; display:block; color:var(--terra); } .stat span { color:var(--muted); font-size:11px; font-weight:700; }
+  #grafo-vis { height:420px; border:1px solid var(--line); border-radius:14px; background:#fffdf8; }
+  .leyenda { display:flex; gap:14px; margin:10px 0; flex-wrap:wrap; color:var(--muted); font-weight:700; }
+  .leyenda i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+  .grafo-img { width:100%; border:1px solid var(--line); border-radius:12px; margin-bottom:12px; background:#fff; }
+  .vacio { color:var(--muted); padding:10px 0; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:700; z-index:99; display:none; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+
+  @media (max-width:640px){ .chat-h .tools label:first-child{display:none} .hero{padding:12px 14px 0} main{padding:0 8px 8px} .msg{max-width:100%} .fuente{flex-basis:200px} }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="top">
+    <div class="marca"><div class="logo">🦙</div><span>Guía Bolivia</span></div>
+    <div class="acciones-top">
+      <div class="lang-toggle" role="group" aria-label="Language / Idioma">
+        <button type="button" data-lang="es">🇧🇴 Español</button>
+        <button type="button" data-lang="en">🇺🇸 English</button>
+      </div>
+      <span class="estado-pill" id="p-api"><i></i><span>Servidor R</span></span>
+      <span class="estado-pill" id="p-llm"><i></i><span>Cerebro: —</span></span>
+      <span class="estado-pill" id="p-voz"><i></i><span>Audio: —</span></span>
+      <button class="btn-panel" data-i="panelBtn" onclick="abrirPanel('t-mapa')">🗺️ Mapa y datos</button>
+    </div>
+  </div>
+  <div class="titulo">
+    <h1 data-i="heroTitle">Descubre Bolivia conversando</h1>
+    <p data-i="heroSub">Pregúntame por destinos, museos, fiestas y comida típica. Escríbeme o toca el 🎤 y habla: te armo tu ruta.</p>
+  </div>
+  <div class="destinos" id="destinos"></div>
+  <svg class="montes" viewBox="0 0 1200 80" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 80 L0 52 L90 22 L160 48 L260 8 L360 54 L450 30 L540 58 L650 14 L760 56 L860 28 L960 60 L1060 24 L1140 50 L1200 36 L1200 80 Z" fill="#2a1d2f" opacity=".85"/>
+    <path d="M0 80 L0 64 L120 42 L220 66 L340 40 L470 68 L600 46 L720 70 L850 44 L980 70 L1100 48 L1200 66 L1200 80 Z" fill="#fbf5ea"/>
+  </svg>
+</section>
+<div id="banner"></div>
+
+<main>
+  <section class="chat-card">
+    <div class="chat-h">
+      <span data-i="chatTitle">💬 Tu guía de viaje</span>
+      <span class="tools">
+        <label><span data-i="ttsLbl">🔊</span>
+          <select id="modo-tts"><option value="auto" data-i="ttsAuto">Si hablo yo</option><option value="siempre" data-i="ttsSiempre">Siempre</option><option value="nunca" data-i="ttsNunca">Nunca</option></select>
+        </label>
+        <label><span data-i="histLbl">📂 Historial</span>
+          <select id="historial-chats" onchange="cargarConversacionGuardada(this.value)">
+            <option value=""></option>
+          </select>
+        </label>
+        <button class="btn-mini" data-i="nueva" onclick="nuevaConversacion()">➕ Nueva</button>
+      </span>
+    </div>
+    <div id="chat"></div>
+    <div id="categorias"></div>
+    <div id="sugerencias"></div>
+    <div class="input-bar">
+      <div id="estado-voz"><canvas id="vu" width="46" height="16"></canvas><span id="estado-voz-txt">Escuchando…</span></div>
+      <textarea id="pregunta" rows="1" placeholder="Escribe o toca 🎤 y pregunta: «¿Qué hago 2 días en Uyuni?»"></textarea>
+      <button class="ibtn" id="btn-mic" title="Hablar (toca para empezar y otra vez para enviar)" onclick="toggleMic()">🎤</button>
+      <button class="ibtn" id="btn-enviar" title="Enviar" onclick="enviarDesdeInput()">➤</button>
+    </div>
+  </section>
+</main>
+
+<div id="velo" onclick="cerrarPanel()"></div>
+<aside class="panel" id="panel">
+  <div class="panel-h"><h2 data-i="panelTitulo">🗺️ Mapa y minería de datos</h2><button onclick="cerrarPanel()" title="Cerrar">✕</button></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="t-mapa" data-i="tabMapa">🗺️ Mapa</button>
+    <button class="tab-btn" data-tab="t-rank" data-i="tabRank">🔥 Lo más buscado</button>
+    <button class="tab-btn" data-tab="t-grafo" data-i="tabGrafo">🕸️ Grafo</button>
+    <button class="tab-btn" data-tab="t-mineria" data-i="tabMineria">📊 Minería</button>
+    <button class="tab-btn" data-tab="t-img" data-i="tabImg">🖼️ Gráficas</button>
+    <button class="tab-btn" data-tab="t-logs" data-i="tabLogs">📜 Logs</button>
+  </div>
+
+  <div id="t-mapa" class="tab mapa active">
+    <div class="nota" id="mapa-nota" data-i="mapaNota">Los lugares que el guía menciona en sus respuestas aparecen aquí.</div>
+    <div id="map"></div>
+  </div>
+
+  <div id="t-rank" class="tab">
+    <div class="stats">
+      <div class="stat"><b id="st-total">0</b><span data-i="stConsultas">consultas</span></div>
+      <div class="stat"><b id="st-voz">0</b><span data-i="stVoz">por voz 🎤</span></div>
+      <div class="stat"><b id="st-hora">--:--</b><span data-i="stAct">actualizado</span></div>
+    </div>
+    <h3 data-i="rankDest">🔥 Destinos más buscados por los turistas</h3>
+    <div id="rank-destinos"></div>
+    <h3 style="margin-top:18px" data-i="rankLug">📍 Lugares más mencionados</h3>
+    <div id="rank-lugares"></div>
+  </div>
+
+  <div id="t-grafo" class="tab">
+    <h3 data-i="grafoTit">Red de destinos (tamaño = importancia PageRank)</h3>
+    <div id="grafo-vis"></div>
+    <div class="leyenda">
+      <span><i style="background:#22c55e"></i><b data-i="catNat" style="font-weight:700">Naturales</b></span>
+      <span><i style="background:#f59e0b"></i><b data-i="catGas" style="font-weight:700">Gastronomía</b></span>
+      <span><i style="background:#818cf8"></i><b data-i="catHis" style="font-weight:700">Historia y Museos</b></span>
+    </div>
+  </div>
+
+  <div id="t-mineria" class="tab">
+    <h3>Estructura (PageRank · HITS) y contenido (K-Means · Sentimiento)</h3>
+    <table id="tabla-red"><thead><tr><th>Nodo</th><th>In</th><th>PR</th><th>PR/10</th><th>Auth</th><th>Hub</th><th>Clúster</th><th>Sentimiento</th></tr></thead><tbody></tbody></table>
+    <h3>Google Trends (0-100)</h3>
+    <table id="tabla-trends"><thead><tr><th>Término</th><th>Promedio</th><th>Pico</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="t-img" class="tab">
+    <img src="img_grafos/grafo_pagerank.png" class="grafo-img" alt="Grafo PageRank">
+    <img src="img_grafos/grafo_authority.png" class="grafo-img" alt="Grafo Authority">
+    <img src="img_grafos/grafo_hub.png" class="grafo-img" alt="Grafo Hub">
+    <img src="img_grafos/google_trends.png" class="grafo-img" alt="Google Trends">
+  </div>
+
+  <div id="t-logs" class="tab">
+    <h3>Minería de uso: últimas consultas</h3>
+    <table id="tabla-logs"><thead><tr><th>Hora</th><th>Consulta</th><th>Destino</th><th>Canal</th><th>Intención</th></tr></thead><tbody></tbody></table>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script>
+const API = location.protocol === 'file:' ? 'http://127.0.0.1:8000' : ''; 
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const u = v => Array.isArray(v) ? v[0] : v;                     // desempaqueta valores de R
+const arr = v => v == null ? [] : (Array.isArray(v) ? v : [v]);  // fuerza arreglo
+const safeUrl = s => /^https?:\/\//.test(s || '') ? s : '#';
+
+/* ---------------- IDIOMAS (ES / EN) ----------------
+   Para agregar otro idioma: añade un bloque en I18N, su código en VOZ_LANG y un botón en .lang-toggle.
+   El servidor (motor_chat.R) tiene su propio bloque TXT; con la API de Claude activa, cualquier idioma funciona. */
+const I18N = {
+  es: {
+    heroTitle:'Descubre Bolivia conversando',
+    heroSub:'Pregúntame por destinos, museos, fiestas y comida típica. Escríbeme o toca el 🎤 y habla: te armo tu ruta.',
+    panelBtn:'🗺️ Mapa y datos', chatTitle:'💬 Tu guía de viaje', ttsLbl:'🔊', ttsAuto:'Si hablo yo', ttsSiempre:'Siempre', ttsNunca:'Nunca',
+    histLbl:'📂 Historial', histActual:n=>`💬 Conversación actual (${n} guardadas)`, nueva:'➕ Nueva',
+    placeholder:'Escribe o toca 🎤 y pregunta: «¿Qué hago 2 días en Uyuni?»',
+    banner:'⚠️ No hay conexión con el servidor. Ejecuta <code>Rscript main.R</code> y abre <b>http://127.0.0.1:8000</b>',
+    panelTitulo:'🗺️ Mapa y minería de datos', tabMapa:'🗺️ Mapa', tabRank:'🔥 Lo más buscado', tabGrafo:'🕸️ Grafo', tabMineria:'📊 Minería', tabImg:'🖼️ Gráficas', tabLogs:'📜 Logs',
+    mapaNota:'Los lugares que el guía menciona en sus respuestas aparecen aquí.',
+    mapaN:n=>`📍 ${n} lugar(es) mencionado(s) en la última respuesta`, mapaVacio:'La última respuesta no mencionó lugares con coordenadas.',
+    stConsultas:'consultas', stVoz:'por voz 🎤', stAct:'actualizado', rankDest:'🔥 Destinos más buscados por los turistas', rankLug:'📍 Lugares más mencionados',
+    grafoTit:'Red de destinos (tamaño = importancia PageRank)', catNat:'Naturales', catGas:'Gastronomía', catHis:'Historia y Museos',
+    sinDatos:'Aún no hay datos. ¡Haz tu primera consulta!',
+    saludo:'¡Hola! 👋 Soy tu **Guía Bolivia**. Puedo contarte de destinos, museos, fiestas y comida típica, armarte una ruta y avisarte del clima o la altura. Escríbeme o toca el 🎤 y háblame.',
+    sugIni:['¿Qué ver en el Salar de Uyuni?','Armame una ruta de 3 días por La Paz','¿Qué platos típicos debo probar?','¿Cuáles son los destinos más buscados?'],
+    categorias:[['🏔️ Naturaleza','¿Qué atractivos naturales me recomiendas visitar?'],['🍲 Gastronomía','¿Qué platos típicos y comida boliviana debo probar?'],['🏛️ Historia y museos','¿Qué museos y lugares históricos puedo visitar?'],['🎉 Fiestas','¿Qué festividades y fiestas tradicionales hay?'],['🗓️ Ruta de 3 días','Armame una ruta de 3 días']],
+    destinos:{uyuni:['Salar de Uyuni','¿Qué ver en el Salar de Uyuni?'],titicaca:['Lago Titicaca','Cuéntame del Lago Titicaca y la Isla del Sol'],lapaz:['La Paz','Armame una ruta de 3 días por La Paz'],oruro:['Carnaval de Oruro','¿Cómo es el Carnaval de Oruro?'],sucre:['Sucre','¿Qué museos y lugares históricos hay en Sucre?'],saltena:['Salteñas y más','¿Qué platos típicos debo probar?'],tiwa:['Tiahuanaco','¿Qué ver en Tiahuanaco?'],madidi:['Madidi','¿Cómo es el Parque Nacional Madidi?']},
+    popularidad:'Popularidad', consejos:'⚠️ Consejos y precauciones', escuchar:'🔊 Escuchar',
+    errServidor:'⚠️ No pude conectarme con el servidor. Ejecuta **Rscript main.R** y recarga esta página.',
+    cat:{Natural:'Naturaleza',Gastron:'Gastronomía',Hist:'Historia y museos'}, sent:{muy:'Muy positivo',pos:'Positivo',prec:'Precaución',neu:'Informativo'},
+    pApi:n=>`Servidor R · ${n} destinos`, pApiMal:'Servidor R sin conexión', pLlmOk:(l,m)=>`Cerebro: ${l} (${m})`, pLlmLocal:'Cerebro: modo local (sin API key)',
+    pVozW:'Audio: Whisper', pVozN:'Audio: navegador', pVozNo:'Audio: no disponible',
+    tNoAudio:'Tu navegador no permite audio. Usa Chrome o Edge.', tRestaurada:'Conversación anterior restaurada',
+    tPermiso:'Permite el micrófono en el navegador.', tErrMic:'Error de micrófono: ', tNoMic:'No se pudo acceder al micrófono. Revisa los permisos.',
+    tNoIniciar:'No se pudo iniciar el micrófono.', escuchando:'Escuchando… (toca ⏹️ para enviar)', voz:'Hablar (toca para empezar y otra vez para enviar)',
+    tNada:'No se escuchó nada, intenta de nuevo.', tNoEntendi:'No entendí el audio, intenta otra vez.', transcribiendo:'⏳ Transcribiendo tu audio…', tErrAudio:'Error enviando el audio al servidor.'
+  },
+  en: {
+    heroTitle:'Discover Bolivia by chatting',
+    heroSub:'Ask me about destinations, museums, festivals and local food. Type, or tap the 🎤 and speak: I\'ll plan your route.',
+    panelBtn:'🗺️ Map & data', chatTitle:'💬 Your travel guide', ttsLbl:'🔊', ttsAuto:'When I speak', ttsSiempre:'Always', ttsNunca:'Never',
+    histLbl:'📂 History', histActual:n=>`💬 Current chat (${n} saved)`, nueva:'➕ New',
+    placeholder:'Type or tap 🎤 and ask: "What can I do in 2 days in Uyuni?"',
+    banner:'⚠️ No connection to the server. Run <code>Rscript main.R</code> and open <b>http://127.0.0.1:8000</b>',
+    panelTitulo:'🗺️ Map & data mining', tabMapa:'🗺️ Map', tabRank:'🔥 Most searched', tabGrafo:'🕸️ Graph', tabMineria:'📊 Mining', tabImg:'🖼️ Charts', tabLogs:'📜 Logs',
+    mapaNota:'The places the guide mentions in its answers appear here.',
+    mapaN:n=>`📍 ${n} place(s) mentioned in the last answer`, mapaVacio:'The last answer did not mention places with coordinates.',
+    stConsultas:'queries', stVoz:'by voice 🎤', stAct:'updated', rankDest:'🔥 Most searched destinations by tourists', rankLug:'📍 Most mentioned places',
+    grafoTit:'Destination network (size = PageRank importance)', catNat:'Nature', catGas:'Food', catHis:'History & Museums',
+    sinDatos:'No data yet. Ask your first question!',
+    saludo:'Hello! 👋 I\'m your **Bolivia Guide**. I can tell you about destinations, museums, festivals and local food, plan a route for you and warn you about weather or altitude. Type, or tap the 🎤 and talk to me.',
+    sugIni:['What can I see at the Uyuni Salt Flat?','Plan a 3-day trip in La Paz','What typical dishes should I try?','What are the most popular places?'],
+    categorias:[['🏔️ Nature','What natural attractions do you recommend visiting?'],['🍲 Food','What typical Bolivian dishes should I try?'],['🏛️ History & museums','What museums and historical places can I visit?'],['🎉 Festivals','What traditional festivals are there?'],['🗓️ 3-day route','Plan a 3-day trip for me']],
+    destinos:{uyuni:['Uyuni Salt Flat','What can I see at the Uyuni Salt Flat?'],titicaca:['Lake Titicaca','Tell me about Lake Titicaca and Isla del Sol'],lapaz:['La Paz','Plan a 3-day trip in La Paz'],oruro:['Oruro Carnival','What is the Oruro Carnival like?'],sucre:['Sucre','What museums and historical places are there in Sucre?'],saltena:['Salteñas & more','What typical dishes should I try?'],tiwa:['Tiwanaku','What can I see at Tiwanaku?'],madidi:['Madidi','What is Madidi National Park like?']},
+    popularidad:'Popularity', consejos:'⚠️ Tips and precautions', escuchar:'🔊 Listen',
+    errServidor:'⚠️ I couldn\'t connect to the server. Run **Rscript main.R** and reload this page.',
+    cat:{Natural:'Nature',Gastron:'Food',Hist:'History & museums'}, sent:{muy:'Very positive',pos:'Positive',prec:'Caution',neu:'Informative'},
+    pApi:n=>`R server · ${n} destinations`, pApiMal:'R server offline', pLlmOk:(l,m)=>`Brain: ${l} (${m})`, pLlmLocal:'Brain: local mode (no API key)',
+    pVozW:'Audio: Whisper', pVozN:'Audio: browser', pVozNo:'Audio: not available',
+    tNoAudio:'Your browser does not support audio. Use Chrome or Edge.', tRestaurada:'Previous conversation restored',
+    tPermiso:'Allow the microphone in your browser.', tErrMic:'Microphone error: ', tNoMic:'Could not access the microphone. Check permissions.',
+    tNoIniciar:'Could not start the microphone.', escuchando:'Listening… (tap ⏹️ to send)', voz:'Speak (tap to start, tap again to send)',
+    tNada:'Nothing was heard, try again.', tNoEntendi:'I didn\'t understand the audio, try again.', transcribiendo:'⏳ Transcribing your audio…', tErrAudio:'Error sending audio to the server.'
+  }
+};
+const VOZ_LANG = { es: 'es-BO', en: 'en-US' };
+let LANG = localStorage.getItem('lang_bolivia') || ((navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es');
+if (!I18N[LANG]) LANG = 'es';
+const T = k => I18N[LANG][k];
+
+let sessionId = localStorage.getItem('sid_bolivia') || '';
+let estado = { whisper:false, llm:'ninguno' };
+let ultimoCanal = 'texto';
+
+/* ---------------- utilidades de UI ---------------- */
+function toast(msg, ms = 3200) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms); }
+function pill(id, clase, texto) { const p = $(id); p.className = 'estado-pill ' + clase; p.querySelector('span').textContent = texto; }
+
+function renderMD(t) {
+  const lineas = esc(t).split('\n');
+  let html = '', enLista = false;
+  for (const l of lineas) {
+    const item = l.match(/^\s*[-•*]\s+(.*)$/);
+    if (item) { if (!enLista) { html += '<ul>'; enLista = true; } html += '<li>' + item[1] + '</li>'; }
+    else { if (enLista) { html += '</ul>'; enLista = false; } html += l.trim() ? l + '<br>' : '<br>'; }
+  }
+  if (enLista) html += '</ul>';
+  return html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(<br>)+$/, '');
+}
+
+function etiquetaCat(c) { c = c || ''; const m = T('cat'); return /Natural/i.test(c) ? m.Natural : /Gastron/i.test(c) ? m.Gastron : /Hist/i.test(c) ? m.Hist : (c || '—'); }
+function etiquetaSent(s) { s = s || ''; const m = T('sent'); return /^Muy Positivo/.test(s) ? m.muy : /^Positivo/.test(s) ? m.pos : /^Precauci/.test(s) ? m.prec : (s ? m.neu : '—'); }
+function claseCluster(c) { c = c || ''; return /Natural/i.test(c) ? 'b-nat' : /Gastron/i.test(c) ? 'b-gas' : /Hist/i.test(c) ? 'b-his' : 'b-neu'; }
+function claseSent(s) { s = s || ''; return /^Muy Positivo|^Positivo/.test(s) ? 'b-pos' : /^Precauci/.test(s) ? 'b-neg' : 'b-neu'; }
+function iconoCluster(c) { return /Natural/i.test(c || '') ? '🏔️' : /Gastron/i.test(c || '') ? '🍲' : /Hist/i.test(c || '') ? '🏛️' : '📍'; }
+
+const cacheMini = new Map();
+async function miniatura(url) {
+  if (!url) return null;
+  if (cacheMini.has(url)) return cacheMini.get(url);
+  let src = null;
+  try {
+    const t = decodeURIComponent(url.split('/wiki/')[1] || '');
+    if (t) { const r = await fetch('https://es.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t)); if (r.ok) { const j = await r.json(); src = j.thumbnail?.source || null; } }
+  } catch (e) {}
+  cacheMini.set(url, src); return src;
+}
+
+function scrollAbajo() { const c = $('chat'); c.scrollTop = c.scrollHeight; }
+
+function msgUsuario(texto, canal) {
+  const d = document.createElement('div'); d.className = 'msg user';
+  d.innerHTML = `<div class="avatar">🧳</div><div class="bubble">${canal === 'voz' ? '🎤 ' : ''}${esc(texto)}</div>`;
+  $('chat').appendChild(d); scrollAbajo();
+}
+function msgEscribiendo() {
+  const d = document.createElement('div'); d.className = 'msg bot'; d.id = 'typing';
+  d.innerHTML = `<div class="avatar">🦙</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  $('chat').appendChild(d); scrollAbajo();
+}
+function quitarEscribiendo() { const t = $('typing'); if (t) t.remove(); }
+
+function msgBot(d) {
+  const texto = u(d.respuesta) || '';
+  const fuentes = arr(d.fuentes), lugares = arr(d.lugares), alertas = arr(d.alertas);
+  const el = document.createElement('div'); el.className = 'msg bot';
+  let h = `<div class="avatar">🦙</div><div class="bubble"><div class="texto">${renderMD(texto)}</div>`;
+
+  if (fuentes.length) {
+    h += '<div class="fuentes">' + fuentes.map((f, i) => `
+      <a class="fuente" href="${esc(safeUrl(u(f.url)))}" target="_blank" rel="noopener">
+        <div class="img" data-url="${esc(u(f.url))}">${iconoCluster(u(f.cluster))}</div>
+        <div class="info"><b>${esc(u(f.nombre))}</b>
+          <span class="badge ${claseCluster(u(f.cluster))}">${esc(etiquetaCat(u(f.cluster)))}</span>
+          <span class="badge ${claseSent(u(f.sentimiento))}">${esc(etiquetaSent(u(f.sentimiento)))}</span>
+          <div style="margin-top:6px;color:var(--muted)">⭐ ${esc(T('popularidad'))} ${esc(u(f.pagerank_10))}/10</div>
+          <div class="bar"><i style="width:${Math.min(100, (Number(u(f.pagerank_10)) || 0) * 10)}%"></i></div>
+        </div></a>`).join('') + '</div>';
+  }
+  if (alertas.length) h += `<div class="alerta"><b>${esc(T('consejos'))}</b>${alertas.slice(0, 3).map(a => '• ' + esc(a)).join('<br>')}</div>`;
+  if (lugares.length) h += `<div class="chips">${lugares.map(l => `<span class="chip loc" data-lat="${l.lat ?? ''}" data-lon="${l.lon ?? ''}" data-n="${esc(l.nombre)}" title="${esc(l.tipo)}">📍 ${esc(l.nombre)} </span>`).join('')}</div>`;
+  h += `<div class="acciones"><button title="${esc(T('escuchar'))}" data-hablar="1">${esc(T('escuchar'))}</button></div></div>`;
+  el.innerHTML = h;
+  el.querySelector('[data-hablar]')?.addEventListener('click', () => hablar(texto, true));
+  el.querySelectorAll('.chip.loc').forEach(c => c.addEventListener('click', () => {
+    if (c.dataset.lat) { abrirPanel('t-mapa'); initMapa(); setTimeout(() => { map.invalidateSize(); map.setView([+c.dataset.lat, +c.dataset.lon], 9); }, 350); }
+  }));
+  $('chat').appendChild(el); scrollAbajo();
+  el.querySelectorAll('.fuente .img').forEach(async div => {
+    const src = await miniatura(div.dataset.url);
+    if (src) { div.style.backgroundImage = `url("${src}")`; div.textContent = ''; }
+  });
+}
+
+function pintarSugerencias(lista) {
+  const cont = $('sugerencias'); cont.innerHTML = '';
+  arr(lista).forEach(s => { const b = document.createElement('button'); b.textContent = s; b.onclick = () => enviar(s, 'texto'); cont.appendChild(b); });
+}
+
+/* ---------------- envío al chatbot ---------------- */
+let ocupado = false;
+function enviarDesdeInput() { const t = $('pregunta').value.trim(); if (t) { $('pregunta').value = ''; autoAltura(); enviar(t, 'texto'); } }
+
+async function enviar(texto, canal) {
+  if (ocupado) return;
+  ocupado = true; ultimoCanal = canal;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  document.body.classList.add('chateando');
+  msgUsuario(texto, canal); msgEscribiendo();
+  try {
+    const r = await fetch(API + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mensaje: texto, session_id: sessionId, canal, idioma: LANG }) });
+    const d = await r.json();
+    quitarEscribiendo();
+    sessionId = u(d.session_id) || sessionId; localStorage.setItem('sid_bolivia', sessionId);
+    const idiomaResp = u(d.idioma);
+    if (idiomaResp && idiomaResp !== LANG && I18N[idiomaResp]) setIdioma(idiomaResp);   // el turista escribió en otro idioma
+    msgBot(d);
+    guardarChatActualEnArchivo();
+    pintarSugerencias(d.sugerencias);
+    actualizarMapa(arr(d.lugares));
+    const modoTts = $('modo-tts').value;
+    if (modoTts === 'siempre' || (modoTts === 'auto' && canal === 'voz')) hablar(u(d.respuesta), true);
+    $('banner').style.display = 'none';
+    cargarRanking(); cargarDashboard();
+  } catch (e) {
+    quitarEscribiendo();
+    $('banner').style.display = 'block';
+    msgBot({ respuesta: T('errServidor') });
+  }
+  ocupado = false;
+}
+
+/* --- Historial de conversaciones guardadas en el navegador --- */
+function obtenerArchivoChats() {
+  try { return JSON.parse(localStorage.getItem('archivo_chats_wayra') || '[]'); } catch (e) { return []; }
+}
+
+function guardarChatActualEnArchivo() {
+  const htmlChat = $('chat').innerHTML;
+  const primerMsgUsuario = $('chat').querySelector('.msg.user .bubble');
+  if (!primerMsgUsuario) return; // Solo guardar si el usuario hizo al menos 1 pregunta
+  const titulo = primerMsgUsuario.textContent.replace(/^🎤\s*/, '').slice(0, 38);
+  const lista = obtenerArchivoChats().filter(c => c.id !== sessionId);
+  lista.unshift({
+    id: sessionId || ('chat_' + Date.now()),
+    titulo: titulo,
+    fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    html: htmlChat
+  });
+  localStorage.setItem('archivo_chats_wayra', JSON.stringify(lista.slice(0, 20)));
+  actualizarSelectorHistorial();
+}
+
+function actualizarSelectorHistorial() {
+  const sel = $('historial-chats');
+  if (!sel) return;
+  const lista = obtenerArchivoChats();
+  sel.innerHTML = `<option value="">${esc(T('histActual')(lista.length))}</option>` +
+    lista.map(c => `<option value="${esc(c.id)}">🕒 ${esc(c.fecha)} · ${esc(c.titulo)}</option>`).join('');
+}
+
+function cargarConversacionGuardada(id) {
+  if (!id) return;
+  guardarChatActualEnArchivo();
+  const chat = obtenerArchivoChats().find(c => c.id === id);
+  if (!chat) return;
+  sessionId = chat.id;
+  localStorage.setItem('sid_bolivia', sessionId);
+  $('chat').innerHTML = chat.html;
+  document.body.classList.add('chateando');
+  scrollAbajo();
+  toast(T('tRestaurada'));
+}
+
+async function nuevaConversacion() {
+  guardarChatActualEnArchivo(); // Guarda la conversación actual antes de limpiar
+  try { await fetch(API + '/reiniciar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) }); } catch (e) {}
+  sessionId = 'ses_' + Date.now();
+  localStorage.setItem('sid_bolivia', sessionId);
+  $('chat').innerHTML = '';
+  document.body.classList.remove('chateando');
+  saludoInicial();
+  actualizarSelectorHistorial();
+}
+
+function saludoInicial() {
+  msgBot({ respuesta: T('saludo'), fuentes: [], lugares: [], alertas: [] });
+  pintarSugerencias(T('sugIni'));
+}
+
+/* ---------------- diseño turista: destinos con foto, categorías, panel lateral ---------------- */
+const DESTINOS_BASE = [
+  { k: 'uyuni', w: 'Salar_de_Uyuni', e: '🏔️' }, { k: 'titicaca', w: 'Lago_Titicaca', e: '🌊' }, { k: 'lapaz', w: 'La_Paz', e: '🏙️' },
+  { k: 'oruro', w: 'Carnaval_de_Oruro', e: '🎭' }, { k: 'sucre', w: 'Sucre', e: '🏛️' }, { k: 'saltena', w: 'Salteña', e: '🥟' },
+  { k: 'tiwa', w: 'Tiahuanaco', e: '🗿' }, { k: 'madidi', w: 'Parque_nacional_Madidi', e: '🦜' }
+];
+function pintarDestinos() {
+  const cont = $('destinos'), tr = T('destinos');
+  cont.innerHTML = DESTINOS_BASE.map((d, i) => `<button class="dest" data-i="${i}"><span class="foto" data-w="${d.w}">${d.e}</span><span class="nom">${esc(tr[d.k][0])}</span></button>`).join('');
+  cont.querySelectorAll('.dest').forEach(b => b.addEventListener('click', () => enviar(tr[DESTINOS_BASE[+b.dataset.i].k][1], 'texto')));
+  cont.querySelectorAll('.foto').forEach(async f => {
+    const src = await miniatura('https://es.wikipedia.org/wiki/' + f.dataset.w);
+    if (src) { f.style.backgroundImage = `url("${src}")`; f.textContent = ''; }
+  });
+}
+function pintarCategorias() {
+  $('categorias').innerHTML = T('categorias').map(([l, q]) => `<button data-q="${esc(q)}">${esc(l)}</button>`).join('');
+  $('categorias').querySelectorAll('button').forEach(b => b.addEventListener('click', () => enviar(b.dataset.q, 'texto')));
+}
+
+/* ---------------- cambio de idioma de la interfaz ---------------- */
+function aplicarIdioma() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i]').forEach(el => { const v = T(el.dataset.i); if (typeof v === 'string') el.textContent = v; });
+  $('pregunta').placeholder = T('placeholder');
+  $('banner').innerHTML = T('banner');
+  $('btn-mic').title = T('voz');
+  document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+  pintarDestinos(); pintarCategorias(); actualizarSelectorHistorial(); actualizarPills();
+}
+function setIdioma(l) {
+  if (!I18N[l] || l === LANG) return;
+  LANG = l; localStorage.setItem('lang_bolivia', LANG);
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  aplicarIdioma();
+  if (!$('chat').querySelector('.msg.user')) { $('chat').innerHTML = ''; saludoInicial(); }   // solo reescribe el saludo si aún no se ha chateado
+}
+document.querySelectorAll('.lang-toggle button').forEach(b => b.addEventListener('click', () => setIdioma(b.dataset.lang)));
+function abrirPanel(tab) { $('panel').classList.add('abierto'); $('velo').classList.add('abierto'); if (tab) activarTab(tab); setTimeout(() => map && map.invalidateSize(), 380); }
+function cerrarPanel() { $('panel').classList.remove('abierto'); $('velo').classList.remove('abierto'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarPanel(); });
+
+/* ---------------- voz: texto a voz ---------------- */
+let vocesES = [];
+function cargarVoces() { vocesES = speechSynthesis.getVoices() || []; }
+if ('speechSynthesis' in window) { cargarVoces(); speechSynthesis.onvoiceschanged = cargarVoces; }
+function hablar(texto, forzar) {
+  if (!('speechSynthesis' in window) || !texto) return;
+  speechSynthesis.cancel();
+  const limpio = texto.replace(/\*\*/g, '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+  const ut = new SpeechSynthesisUtterance(limpio);
+  const lang = VOZ_LANG[LANG]; ut.lang = lang;
+  const delIdioma = vocesES.filter(v => v.lang.toLowerCase().startsWith(LANG));
+  ut.voice = delIdioma.find(v => v.lang.replace('_', '-') === lang) || (LANG === 'es' ? delIdioma.find(v => /es-(BO|419|MX|US|AR|CO)/i.test(v.lang)) : null) || delIdioma[0] || null;
+  ut.rate = 1; speechSynthesis.speak(ut);
+}
+
+/* ---------------- voz: reconocimiento (Whisper en R o navegador) ---------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let grabando = false, recorder = null, chunks = [], streamMic = null, timerRec = null, audioCtx = null, rafVU = null, recog = null, omitirEnvio = false;
+
+function setGrabando(on, txt) {
+  grabando = on; $('btn-mic').classList.toggle('rec', on); $('btn-mic').textContent = on ? '⏹️' : '🎤';
+  $('estado-voz').style.display = on || txt ? 'flex' : 'none';
+  $('estado-voz-txt').textContent = txt || T('escuchando');
+}
+
+async function toggleMic() {
+  if (grabando) return detenerGrabacion();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if (estado.whisper && navigator.mediaDevices && window.MediaRecorder) return iniciarWhisper();
+  if (SR) return iniciarWebSpeech();
+  toast(T('tNoAudio'));
+}
+
+function detenerGrabacion() {
+  clearTimeout(timerRec);
+  if (recorder && recorder.state !== 'inactive') recorder.stop();
+  if (recog) { try { recog.stop(); } catch (e) {} }
+}
+
+async function iniciarWhisper() {
+  try {
+    streamMic = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) { toast(T('tNoMic')); return; }
+  const tipos = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+  const mime = tipos.find(t => MediaRecorder.isTypeSupported(t)) || '';
+  recorder = new MediaRecorder(streamMic, mime ? { mimeType: mime } : undefined);
+  chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    streamMic.getTracks().forEach(t => t.stop()); detenerVU();
+    const blob = new Blob(chunks, { type: recorder.mimeType || mime || 'audio/webm' });
+    await transcribirYEnviar(blob);
+  };
+  recorder.start(); setGrabando(true); iniciarVU(streamMic);
+  timerRec = setTimeout(detenerGrabacion, 30000);
+}
+
+async function transcribirYEnviar(blob) {
+  setGrabando(false, T('transcribiendo'));
+  try {
+    if (blob.size < 1500) { toast(T('tNada')); return; }
+    const mime = (blob.type || 'audio/webm').split(';')[0];
+    const r = await fetch(API + '/transcribir?mime=' + encodeURIComponent(mime), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: blob });
+    const d = await r.json();
+    if (!r.ok) { toast(u(d.error) || 'No se pudo transcribir.'); return; }
+    const texto = u(d.texto);
+    if (texto) enviar(texto, 'voz'); else toast(T('tNoEntendi'));
+  } catch (e) { toast(T('tErrAudio')); }
+  finally { $('estado-voz').style.display = 'none'; }
+}
+
+function iniciarWebSpeech() {
+  recog = new SR(); recog.lang = VOZ_LANG[LANG]; recog.interimResults = true; recog.maxAlternatives = 1; recog.continuous = false;
+  let final = '', fallo = false;
+  recog.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript; }
+    $('pregunta').value = (final + interim).trim(); autoAltura();
+  };
+  recog.onerror = e => { fallo = true; toast(e.error === 'not-allowed' ? T('tPermiso') : T('tErrMic') + e.error); };
+  recog.onend = () => {
+    setGrabando(false); clearTimeout(timerRec);
+    const t = $('pregunta').value.trim();
+    if (!fallo && t) { $('pregunta').value = ''; autoAltura(); enviar(t, 'voz'); }
+  };
+  try { recog.start(); setGrabando(true); timerRec = setTimeout(detenerGrabacion, 30000); } catch (e) { toast(T('tNoIniciar')); }
+}
+
+/* indicador de volumen mientras grabas */
+function iniciarVU(stream) {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const an = audioCtx.createAnalyser(); an.fftSize = 64; audioCtx.createMediaStreamSource(stream).connect(an);
+    const data = new Uint8Array(an.frequencyBinCount), cv = $('vu'), g = cv.getContext('2d');
+    const dibujar = () => {
+      an.getByteFrequencyData(data); g.clearRect(0, 0, cv.width, cv.height);
+      for (let i = 0; i < 6; i++) { const v = data[i * 2] / 255, h = Math.max(2, v * cv.height); g.fillStyle = '#fecaca'; g.fillRect(i * 8, cv.height - h, 5, h); }
+      rafVU = requestAnimationFrame(dibujar);
+    };
+    dibujar();
+  } catch (e) {}
+}
+function detenerVU() { cancelAnimationFrame(rafVU); if (audioCtx) { audioCtx.close(); audioCtx = null; } }
+
+/* ---------------- mapa (lugares NER) ---------------- */
+let map = null, capa = null;
+function initMapa() {
+  if (map || typeof L === 'undefined') return;
+  map = L.map('map').setView([-16.5, -64.5], 5);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — Source: Esri, DeLorme, NAVTEQ, USGS, Intermap',
+    maxZoom: 18
+  }).addTo(map);
+  capa = L.layerGroup().addTo(map);
+}
+function actualizarMapa(lugares) {
+  initMapa(); if (!map) return;
+  capa.clearLayers();
+  const pts = lugares.filter(l => l.lat != null && l.lon != null);
+  pts.forEach(l => L.circleMarker([l.lat, l.lon], { radius: 9, color: '#f9c800', fillColor: '#d52b1e', fillOpacity: .85, weight: 2 }).addTo(capa).bindPopup(`<b>${esc(l.nombre)}</b><br>${esc(l.tipo)}`));
+  $('mapa-nota').textContent = pts.length ? T('mapaN')(pts.length) : T('mapaVacio');
+  setTimeout(() => { map.invalidateSize(); if (pts.length > 1) map.fitBounds(pts.map(l => [l.lat, l.lon]), { padding: [40, 40], maxZoom: 9 }); else if (pts.length === 1) map.setView([pts[0].lat, pts[0].lon], 9); }, 120);
+}
+
+/* ---------------- ranking en vivo ---------------- */
+function barras(lista, kName, vName, color) {
+  if (!lista.length) return `<div class="vacio">${esc(T('sinDatos'))}</div>`;
+  const max = Math.max(...lista.map(x => x[vName]));
+  return lista.map((x, i) => `<div class="rank-row"><div class="n">${i + 1}</div><div><div class="t">${esc(x[kName])}</div><div class="bar"><i style="width:${(x[vName] / max) * 100}%;background:${color}"></i></div></div><div class="c">${x[vName]}</div></div>`).join('');
+}
+async function cargarRanking() {
+  try {
+    const d = await (await fetch(API + '/ranking')).json();
+    $('rank-destinos').innerHTML = barras(arr(d.destinos), 'destino', 'consultas', 'linear-gradient(90deg,#f9c800,#d52b1e)');
+    $('rank-lugares').innerHTML = barras(arr(d.lugares), 'lugar', 'menciones', 'linear-gradient(90deg,#3b82f6,#22c55e)');
+    const s = d.stats || {}; $('st-total').textContent = u(s.total) ?? 0; $('st-voz').textContent = u(s.voz) ?? 0; $('st-hora').textContent = u(d.actualizado) || '--:--';
+  } catch (e) {}
+}
+
+/* ---------------- grafo interactivo ---------------- */
+let grafoListo = false;
+async function initGrafo() {
+  if (grafoListo || typeof vis === 'undefined') return;
+  try {
+    const d = await (await fetch(API + '/grafo')).json();
+    const col = c => /Natural/i.test(c || '') ? '#22c55e' : /Gastron/i.test(c || '') ? '#f59e0b' : /Hist/i.test(c || '') ? '#818cf8' : '#94a3b8';
+    const nodos = arr(d.nodos).map(n => ({ id: n.nombre, label: n.nombre, value: (Number(n.pagerank_10) || 1) + 1, color: { background: col(n.cluster), border: '#0b1220' }, font: { color: '#e6ebf5', size: 13 }, title: `${n.nombre}\nPageRank ${n.pagerank_10}/10\n${n.cluster || ''}` }));
+    const aristas = arr(d.aristas).map(a => ({ from: a.desde, to: a.hasta, arrows: 'to', color: { color: '#475569', opacity: .6 } }));
+    new vis.Network($('grafo-vis'), { nodes: new vis.DataSet(nodos), edges: new vis.DataSet(aristas) }, { nodes: { shape: 'dot', scaling: { min: 8, max: 36 } }, physics: { stabilization: true, barnesHut: { gravitationalConstant: -9000, springLength: 140 } }, interaction: { hover: true } });
+    grafoListo = true;
+  } catch (e) { $('grafo-vis').innerHTML = '<div class="vacio" style="padding:16px">No se pudo cargar el grafo.</div>'; }
+}
+
+/* ---------------- tablas de minería ---------------- */
+async function cargarDashboard() {
+  try {
+    const d = await (await fetch(API + '/dashboard')).json();
+    $('tabla-red').querySelector('tbody').innerHTML = arr(d.red).map(r => `<tr><td><a href="${esc(safeUrl(r.id_url))}" target="_blank" rel="noopener"><b>${esc(r.nombre_nodo)}</b></a></td><td>${r.enlaces_entrantes ?? ''}</td><td>${r.pagerank_real ?? ''}</td><td><b>${r.pagerank_10 ?? ''}</b></td><td>${r.authority ?? ''}</td><td>${r.hub ?? ''}</td><td><span class="badge ${claseCluster(r.cluster)}">${esc(r.cluster || '-')}</span></td><td><span class="badge ${claseSent(r.sentimiento_base)}">${esc(r.sentimiento_base || '-')}</span></td></tr>`).join('');
+    $('tabla-trends').querySelector('tbody').innerHTML = arr(d.trends).map(t => `<tr><td><b>${esc(t.keyword)}</b></td><td>${t.popularidad_promedio} / 100</td><td>${t.pico_maximo}</td></tr>`).join('');
+    $('tabla-logs').querySelector('tbody').innerHTML = arr(d.logs).map(l => `<tr><td>${esc(l.fecha_hora)}</td><td>${esc(l.consulta_usuario)}</td><td><b>${esc(l.destino_recuperado)}</b></td><td>${l.canal === 'voz' ? '🎤 voz' : '⌨️ texto'}</td><td>${esc(l.intencion || '')}</td></tr>`).join('');
+  } catch (e) {}
+}
+
+/* ---------------- pestañas ---------------- */
+function activarTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === id));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  if (id === 't-mapa') { initMapa(); setTimeout(() => map && map.invalidateSize(), 80); }
+  if (id === 't-grafo') initGrafo();
+  if (id === 't-rank') cargarRanking();
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => activarTab(b.dataset.tab)));
+
+/* ---------------- textarea ---------------- */
+function autoAltura() { const t = $('pregunta'); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; }
+$('pregunta').addEventListener('input', autoAltura);
+$('pregunta').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarDesdeInput(); } });
+
+/* ---------------- arranque ---------------- */
+let servidorOk = null;
+function actualizarPills() {
+  if (servidorOk === null) return;
+  if (servidorOk) {
+    pill('p-api', 'ok', T('pApi')(u(estado.destinos)));
+    const llm = u(estado.llm), hayLlm = llm && llm !== 'ninguno';
+    pill('p-llm', hayLlm ? 'ok' : 'warn', hayLlm ? T('pLlmOk')(llm, u(estado.modelo)) : T('pLlmLocal'));
+    pill('p-voz', estado.whisper ? 'ok' : (SR ? 'warn' : 'bad'), estado.whisper ? T('pVozW') : (SR ? T('pVozN') : T('pVozNo')));
+  } else {
+    pill('p-api', 'bad', T('pApiMal')); pill('p-llm', 'bad', '—'); pill('p-voz', SR ? 'warn' : 'bad', SR ? T('pVozN') : T('pVozNo'));
+  }
+}
+async function iniciar() {
+  aplicarIdioma(); saludoInicial(); initMapa();
+  try {
+    estado = await (await fetch(API + '/estado')).json();
+    estado.whisper = !!u(estado.whisper); servidorOk = true;
+  } catch (e) { servidorOk = false; $('banner').style.display = 'block'; }
+  actualizarPills();
+  cargarRanking(); cargarDashboard();
+  setInterval(() => { if (!document.hidden && $('t-rank').classList.contains('active')) cargarRanking(); }, 8000);
+}
+iniciar();
+</script>
+</body>
+</html>
